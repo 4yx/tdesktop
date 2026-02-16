@@ -36,10 +36,10 @@ namespace Webrtc {
 enum class VideoState;
 class VideoTrack;
 struct DeviceResolvedId;
+class MixingAudioControl;
 } // namespace Webrtc
 
 namespace Calls {
-
 struct StartConferenceInfo;
 
 struct DhConfig {
@@ -242,6 +242,13 @@ public:
 	//void setAudioVolume(bool input, float level);
 	void setAudioDuckingEnabled(bool enabled);
 
+	void setPlaybackVolume(int volume);
+	[[nodiscard]] int playbackVolume() const;
+	void setPlaybackMuted(bool muted);
+	[[nodiscard]] bool playbackMuted() const;
+	[[nodiscard]] rpl::producer<int> playbackVolumeValue() const;
+	[[nodiscard]] rpl::producer<bool> playbackMutedValue() const;
+
 	[[nodiscard]] QString videoDeviceId() const {
 		return _videoCaptureDeviceId;
 	}
@@ -249,10 +256,13 @@ public:
 	[[nodiscard]] bool isSharingVideo() const;
 	[[nodiscard]] bool isSharingCamera() const;
 	[[nodiscard]] bool isSharingScreen() const;
+	[[nodiscard]] bool screenSharingWithAudio() const;
 	[[nodiscard]] QString cameraSharingDeviceId() const;
 	[[nodiscard]] QString screenSharingDeviceId() const;
 	void toggleCameraSharing(bool enabled);
-	void toggleScreenSharing(std::optional<QString> uniqueId);
+	void toggleScreenSharing(
+		std::optional<QString> uniqueId,
+		bool withAudio = false);
 	[[nodiscard]] auto peekVideoCapture() const
 		-> std::shared_ptr<tgcalls::VideoCaptureInterface>;
 
@@ -363,9 +373,13 @@ private:
 	std::vector<not_null<PeerData*>> _conferenceParticipants;
 
 	std::unique_ptr<tgcalls::Instance> _instance;
+	std::shared_ptr<Webrtc::MixingAudioControl> _screenAudioControl;
 	std::shared_ptr<tgcalls::VideoCaptureInterface> _videoCapture;
 	QString _videoCaptureDeviceId;
 	bool _videoCaptureIsScreencast = false;
+	bool _screenWithAudio = false;
+	rpl::variable<int> _playbackVolume = 10000;
+	rpl::variable<bool> _playbackMuted = false;
 	const std::unique_ptr<Webrtc::VideoTrack> _videoIncoming;
 	const std::unique_ptr<Webrtc::VideoTrack> _videoOutgoing;
 
